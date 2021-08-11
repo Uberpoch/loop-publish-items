@@ -4,9 +4,10 @@ const commandLineArgs = require('command-line-args');
 
 require('dotenv').config('.env');
 
-const { loopExample } = require('./utils/loop');
+const { loop } = require('./utils/loop');
 const { dataExample } = require('./utils/data');
-const { writeExample } = require('./utils/write');
+const { write } = require('./utils/write');
+const ogItems = require('./source')
 
 const auth = async (key, secret) => {
     return axios.post('https://v2.api.uberflip.com/authorize', {
@@ -15,7 +16,7 @@ const auth = async (key, secret) => {
         client_secret: secret
     })
     .catch(function (error) {
-        console.log(error);
+        console.log('Error', error.message);
         })
     .then(function (response) {
         // tokenType = response.data.token_type;
@@ -29,9 +30,6 @@ const auth = async (key, secret) => {
 const run = async(argv) => {
     const optionDefinitions = [
       { name: 'nocommit', type: Boolean },
-      {name: 'spec',
-        type: String,
-      },
       {
         name: 'key',
         type: String,
@@ -39,18 +37,13 @@ const run = async(argv) => {
       {
         name: 'sec',
         type: String,
-      },
-      {
-        name: 'hub',
-        type: Number,
-      },
+      }
     ];
   
     // defining commandline variables
     const options = commandLineArgs(optionDefinitions, { argv });
     let apiKey = options.key; //--key
     let apiSecret = options.sec; //--sec
-    const hub_id = options.hub; //--hub
 
     console.log(options);
     // warning for missing commandline arguments
@@ -66,16 +59,14 @@ const run = async(argv) => {
         console.error('no apikey was supplied please follow this format $node index.js run --key ENTERAPIKEY --sec ENTERFEEDURL. --hub ENTERHUBID');
         return;
     }
-    if (hub_id === undefined ) {
-        console.error('no apikey was supplied please follow this format $node index.js run --key ENTERAPIKEY --sec ENTERFEEDURL. --hub ENTERHUBID');
-    return;
-    }
+
   
     // get all tags
     const token = await auth(apiKey, apiSecret);
-    const loopResult = await loopExample(token);
-    const dataResult = await dataExample(loopResult);
-    await writeExample(dataResult, hub_id);
+    const [array, errArray] = await loop(token, ogItems);
+    await write(array, 'success');
+    await write(errArray, 'error');
+    console.log('published complete. Please see error file for unsuccessful runs');
 
   };
 
